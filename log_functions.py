@@ -80,3 +80,10 @@ def proportional_abundance(log,field,path='IT'):
         raise AssertionError("ERROR: Proportional abundance distribution does not sum up to one.")
     return pa_df.values[:,0],list(pa_df.index);
     
+def normalize(serie):
+    max_value = serie.max()
+    min_value = serie.min()
+    if max_value == min_value:
+        return serie.apply(lambda x: x / serie.shape[0])
+    else:
+        return serie.apply(lambda x: (x - min_value)/(max_value- min_value));
