@@ -32,12 +32,16 @@ import seaborn as sns
 
 begin_time = timelib.time()
 
-###########
-# CONSTANTS
 filename = "Outputs/Mini_sessions.csv"
-requests_threshold = 6
+
 parameters = ["requests","timespan","requested_category_richness","requested_my_thema_richness","star_chain_like","bifurcation","entropy","variance","popularity_mean","inter_req_mean_seconds","TV_proportion","Celebrities_proportion","Series_proportion","Movies_proportion","Music_proportion","Unclassifiable_proportion","Comic_proportion","VideoGames_proportion","Other_proportion","Sport_proportion","News_proportion","read_pages"]
+
 log_scale_parameters = ["requests", "timespan", "inter_req_mean_seconds"]
+
+# GENERATORS
+histogen = True
+scattergen = True
+scatter3d = True
 
 ####################
 # READING DATA FILES 
@@ -57,44 +61,58 @@ for p in parameters:
     sessions["normalized_"+p] = normalize(sessions[p])
 print("   * Parameters normalized in %.1f seconds." %(timelib.time()-start_time))
 
-sessions = sessions[sessions.requests>requests_threshold]
+# FILTER
+sessions = sessions[sessions.requests>6]
 
 
 #######################
 # GENERATING HISTOGRAMS
-start_time = timelib.time()
-print("\n   * Generating histograms ...")
-for p in parameters:
-    # regular histograms
-    print("        Generating Matplot/"+p+".pdf ...", end="\r")
-    plt.hist(sessions[p].values, align="left")
-    plt.xlabel(p)
-    plt.ylabel("Frequency")
-    if p in log_scale_parameters:
-        plt.gca().set_xscale('log')
-        plt.gca().set_yscale('log')
-    plt.savefig("Matplot/"+p+".pdf",format='pdf')
-    print("        Matplot/"+p+".pdf successfully generated")
-    plt.clf()
-    # normalized histograms
-    print("        Generating Matplot/Normalized/normalized_"+p+".pdf ...", end="\r")
-    plt.hist(sessions["normalized_"+p].values, align="left")
-    plt.xlabel("Normalized "+p)
-    plt.ylabel("Frequency")
-    if p in log_scale_parameters:
-        plt.gca().set_xscale('log')
-        plt.gca().set_yscale('log')
-    plt.savefig("Matplot/Normalized/normalized_"+p+".pdf",format='pdf')
-    print("        Matplot/Normalized/normalized_"+p+".pdf successfully generated")
-    plt.clf()
-print("   * Histograms generated in %.1f seconds." %(timelib.time()-start_time))
+if histogen:
+    start_time = timelib.time()
+    print("\n   * Generating histograms ...", end="\r")
+    for p in parameters:
+        # regular histograms
+        plt.hist(sessions[p].values, align="left")
+        plt.grid(alpha=0.5)
+        plt.xlabel(p)
+        plt.ylabel("Frequency")
+        if p in log_scale_parameters:
+            plt.gca().set_xscale('log')
+            plt.gca().set_yscale('log')
+        plt.savefig("Matplot/"+p+".png",format='png')
+        plt.clf()
+        # normalized histograms
+        plt.hist(sessions["normalized_"+p].values, align="left")
+        plt.grid(alpha=0.5)
+        plt.xlabel("Normalized "+p)
+        plt.ylabel("Frequency")
+        if p in log_scale_parameters:
+            plt.gca().set_xscale('log')
+            plt.gca().set_yscale('log')
+        plt.savefig("Matplot/Normalized/normalized_"+p+".png",format='png')
+        plt.clf()
+    print("   * Histograms generated in %.1f seconds." %(timelib.time()-start_time))
 
 ##########################
 # GENERATING SCATTER PLOTS
-start_time = timelib.time()
-print("\n   * Generating scatter plots ...")
-# TODO
-print("   * Scatter plots generated in %.1f seconds." %(timelib.time()-start_time))
+if scattergen:
+    start_time = timelib.time()
+    print("\n   * Generating scatter plots ...")
+    for i in range (0, len(parameters)):
+        for j in range (i+1, len(parameters)):
+            plt.scatter(sessions[parameters[i]].values, sessions[parameters[j]].values)
+            plt.grid(alpha=0.5)
+            plt.xlabel(parameters[i])
+            plt.ylabel(parameters[j])
+            plt.savefig("Matplot/Scatter/"+parameters[i]+"-VS-"+parameters[j]+".png",format='png')
+            plt.clf()
+            plt.scatter(sessions["normalized_"+parameters[i]].values, sessions["normalized_"+parameters[j]].values)
+            plt.grid(alpha=0.5)
+            plt.xlabel("Normalized "+parameters[i])
+            plt.ylabel("Normalized "+parameters[j])
+            plt.savefig("Matplot/Scatter/Normalized/normalized_"+parameters[i]+"-VS-normalized_"+parameters[j]+".png",format='png')
+            plt.clf()
+    print("   * Scatter plots generated in %.1f seconds." %(timelib.time()-start_time))
 
 ###############
 # END OF SCRIPT
