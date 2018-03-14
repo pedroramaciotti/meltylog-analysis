@@ -32,7 +32,7 @@ import seaborn as sns
 
 begin_time = timelib.time()
 
-filename = "Outputs/Mini_sessions.csv"
+filename = "Outputs/Sessions.csv"
 
 parameters = ["requests","timespan","requested_category_richness","requested_my_thema_richness","star_chain_like","bifurcation","entropy","variance","popularity_mean","inter_req_mean_seconds","TV_proportion","Celebrities_proportion","Series_proportion","Movies_proportion","Music_proportion","Unclassifiable_proportion","Comic_proportion","VideoGames_proportion","Other_proportion","Sport_proportion","News_proportion","read_pages"]
 
@@ -41,7 +41,7 @@ log_scale_parameters = ["requests", "timespan", "inter_req_mean_seconds"]
 # GENERATORS
 histogen = True
 scattergen = True
-scatter3d = True
+scatter3d = False
 
 ####################
 # READING DATA FILES 
@@ -50,6 +50,9 @@ print("\n   * Loading "+filename+" ...", end="\r")
 sessions = pd.read_csv(filename, sep=',')
 print("   * "+filename+" loaded ({} rows) in {:.1f} seconds.".format(sessions.shape[0], timelib.time()-start_time))
 sessions.fillna(0, inplace=True)
+
+# FILTER
+sessions = sessions[sessions.requests>6]
 
 ###############
 # NORMALIZATION
@@ -60,10 +63,6 @@ for p in parameters:
     normalized_parameters.append("normalized_"+p)
     sessions["normalized_"+p] = normalize(sessions[p])
 print("   * Parameters normalized in %.1f seconds." %(timelib.time()-start_time))
-
-# FILTER
-sessions = sessions[sessions.requests>6]
-
 
 #######################
 # GENERATING HISTOGRAMS
@@ -82,13 +81,11 @@ if histogen:
         plt.savefig("Matplot/"+p+".png",format='png')
         plt.clf()
         # normalized histograms
-        plt.hist(sessions["normalized_"+p].values, align="left")
+        bincuts=[0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
+        plt.hist(sessions["normalized_"+p].values,bins=bincuts)
         plt.grid(alpha=0.5)
         plt.xlabel("Normalized "+p)
         plt.ylabel("Frequency")
-        if p in log_scale_parameters:
-            plt.gca().set_xscale('log')
-            plt.gca().set_yscale('log')
         plt.savefig("Matplot/Normalized/normalized_"+p+".png",format='png')
         plt.clf()
     print("   * Histograms generated in %.1f seconds." %(timelib.time()-start_time))

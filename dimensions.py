@@ -191,7 +191,7 @@ print("        Number of read pages determined in %.1f seconds." %(timelib.time(
 
 # Computing popularity requested_url
 start_time = timelib.time()
-print("        Computing requested_url ...", end='\r')
+print("        Computing requested_url popularity ...", end='\r')
 log["popularity_requested_url"] = 1
 popularity = log[["requested_url", "popularity_requested_url"]].groupby("requested_url").count()
 popularity_lookup_table = pd.Series(data=popularity.popularity_requested_url, index=popularity.index)
