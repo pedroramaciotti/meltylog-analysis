@@ -9,6 +9,7 @@ Created on Fri Feb  2 17:02:01 2018
 import pandas as pd
 import time as timelib
 import numpy as np
+from math import log
 
 def zf(s):
     s=str(s)
@@ -87,3 +88,11 @@ def normalize(serie):
         return serie.apply(lambda x: x / serie.shape[0])
     else:
         return serie.apply(lambda x: (x - min_value)/(max_value- min_value));
+
+def log_normalize(serie):
+    max_value = log(serie.max())
+    min_value = log(serie.min())
+    if max_value == min_value:
+        return serie.apply(lambda x: x / serie.shape[0])
+    else:
+        return serie.apply(lambda x: (log(x) - min_value)/(max_value- min_value));
