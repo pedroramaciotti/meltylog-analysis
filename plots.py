@@ -10,6 +10,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from math import * 
 
 cmap = plt.cm.gist_ncar
 
@@ -47,8 +48,8 @@ def plot_sessions(cluster_log,filename,labels,
     session_data['id']=sessions
     
     # start and ending times
-    session_start=log[['timestamp','global_session_id']].groupby('global_session_id').min()
-    session_end=log[['timestamp','global_session_id']].groupby('global_session_id').max()
+    session_start=plot_log[['timestamp','global_session_id']].groupby('global_session_id').min()
+    session_end=plot_log[['timestamp','global_session_id']].groupby('global_session_id').max()
     session_data['start']=session_data.id.map(pd.Series(data=session_start.timestamp.values
                 ,index=session_start.index))
     session_data['end']=session_data.id.map(pd.Series(data=session_end.timestamp.values

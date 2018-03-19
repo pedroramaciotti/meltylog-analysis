@@ -67,7 +67,7 @@ sessions = pd.read_csv(filename, sep=',')
 print("   * "+filename+" loaded ({} rows) in {:.1f} seconds.".format(sessions.shape[0], timelib.time()-start_time))
 sessions.fillna(0, inplace=True)
 
-
+########
 # FILTER
 sessions = sessions[sessions.requests > 6]
 sessions = sessions[sessions.variance > 0]
