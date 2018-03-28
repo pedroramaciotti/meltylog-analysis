@@ -21,10 +21,11 @@ import matplotlib.pyplot as plt
 from pylab import *
 import seaborn as sns
 import mpl_scatter_density
-import matplotlib.colors as colors
-from matplotlib.mlab import bivariate_normal
 from astropy.visualization import LogStretch
 from astropy.visualization.mpl_normalize import ImageNormalize
+
+from math import sqrt
+from scipy import stats
 
 ##################################
 ##################################
@@ -39,25 +40,26 @@ begin_time = timelib.time()
 
 filename = "Outputs/Sessions.csv"
 
-parameters = ["requests","timespan","requested_category_richness","requested_my_thema_richness","star_chain_like","bifurcation","entropy","variance","popularity_mean","inter_req_mean_seconds","TV_proportion","Celebrities_proportion","Series_proportion","Movies_proportion","Music_proportion","Unclassifiable_proportion","Comic_proportion","VideoGames_proportion","Other_proportion","Sport_proportion","News_proportion","read_pages"]
+parameters = ["requests","timespan","requested_category_richness","requested_my_thema_richness","star_chain_like","bifurcation","entropy","standard_deviation","popularity_mean","inter_req_mean_seconds","TV_proportion","Celebrities_proportion","Series_proportion","Movies_proportion","Music_proportion","Unclassifiable_proportion","Comic_proportion","VideoGames_proportion","Other_proportion","Sport_proportion","News_proportion","read_pages"]
 
-log_scale_parameters = ["requests", "timespan", "inter_req_mean_seconds", "variance", "read_pages", "popularity_mean"]
+log_scale_parameters = ["requests", "timespan", "inter_req_mean_seconds", "standard_deviation", "read_pages"]
 
-log_scale_parameters_y = ["entropy", "bifurcation", "TV_proportion","Celebrities_proportion","Series_proportion","Movies_proportion","Music_proportion","Unclassifiable_proportion","Comic_proportion","VideoGames_proportion","Other_proportion","Sport_proportion","News_proportion", "requested_category_richness", "requested_my_thema_richness"]
+log_scale_parameters_y = ["entropy", "bifurcation", "TV_proportion","Celebrities_proportion","Series_proportion","Movies_proportion","Music_proportion","Unclassifiable_proportion","Comic_proportion","VideoGames_proportion","Other_proportion","Sport_proportion","News_proportion", "requested_category_richness", "requested_my_thema_richness", "popularity_mean"]
 
 # for scatter plots
-my_paramaters = ["requests", "timespan", "variance", "star_chain_like", "bifurcation", "inter_req_mean_seconds"]
+my_parameters = ["requests", "timespan", "standard_deviation", "star_chain_like", "bifurcation", "inter_req_mean_seconds"]
 
 # for log normalization
-lognorm = ["requests", "timespan", "inter_req_mean_seconds", "variance"]
+lognorm = ["requests", "timespan", "inter_req_mean_seconds", "standard_deviation", "popularity_mean"]
 
 # latex code generation output file
-latex_ouput = open("Outputs/latex", "w")
+latex_output = open("Outputs/latex", "w")
 
 # GENERATORS
-histogen = True
-scattergen = True
-scatter_density = True
+histogen = False
+scattergen = False
+scatter_density = False
+pearson = False
 
 ####################
 # READING DATA FILES 
@@ -73,6 +75,9 @@ sessions = sessions[sessions.requests > 6]
 sessions = sessions[sessions.variance > 0]
 sessions = sessions[sessions.inter_req_mean_seconds > 0]
 print("\n   * Sessions filtered: {} rows".format(sessions.shape[0]))
+
+# standard deviation
+sessions["standard_deviation"] = sessions.variance.apply(lambda x: sqrt(x))
 
 ###############
 # NORMALIZATION
@@ -92,30 +97,39 @@ print("   * Parameters normalized in %.1f seconds." %(timelib.time()-start_time)
 print("\n   > Histograms: {}".format(histogen))
 print("   > Scatter plots: {}".format(scattergen))
 print("   > Density scatter plots: {}".format(scatter_density))
+print("   > Pearson correlation: {}".format(pearson))
 
 if histogen:
     start_time = timelib.time()
     print("\n   * Generating histograms ...", end="\r")
     for p in parameters:
         # regular histograms
-        plt.hist(sessions[p].values, align="left")
+        if p not in log_scale_parameters:
+            plt.hist(sessions[p].values, align="left")
         plt.grid(alpha=0.5)
         plt.xlabel(p)
         plt.ylabel("Frequency")
-        latex_ouput.write("\\begin{frame}\n\\frametitle{"+p.replace("_", "\_")+"}\n    \\begin{center}\n        \\begin{tabular}{>{\\centering\\arraybackslash}m{0.4\\linewidth}>{\\centering\\arraybackslash}m{0.15\\linewidth}>{\\centering\\arraybackslash}m{0.4\\linewidth}}\n            \\includegraphics[scale=0.27]{plots/"+p+"} &")
+        latex_output.write("\\begin{frame}\n\\frametitle{"+p.replace("_", "\_")+"}\n    \\begin{center}\n        \\begin{tabular}{>{\\centering\\arraybackslash}m{0.4\\linewidth}>{\\centering\\arraybackslash}m{0.15\\linewidth}>{\\centering\\arraybackslash}m{0.4\\linewidth}}\n            \\includegraphics[scale=0.27]{plots/"+p+"} &")
         if p in lognorm:
-            latex_ouput.write(" \\tiny{$\\xrightarrow[\\frac{\\log(x)-\\log(min)}{\\log(max)-\\log(min)}]{}$} &")
+            latex_output.write(" \\tiny{$\\xrightarrow[\\frac{\\log(x)-\\log(min)}{\\log(max)-\\log(min)}]{}$} &")
         else:
-            latex_ouput.write(" $\\xrightarrow[\\frac{x-min}{max-min}]{}$ &")
-        latex_ouput.write(" \\includegraphics[scale=0.27]{plots/Normalized/normalized_"+p+"} \\\\\n")
+            latex_output.write(" $\\xrightarrow[\\frac{x-min}{max-min}]{}$ &")
+        latex_output.write(" \\includegraphics[scale=0.27]{plots/Normalized/normalized_"+p+"} \\\\\n")
         if p in log_scale_parameters:
+            values = sessions[p].values
+            min_value = values.min()
+            max_value = values.max()
+            if p == "read_pages":
+                plt.hist(sessions[p].values, align="left", bins=np.logspace(0,np.log10(max_value), 10))
+            else:
+                plt.hist(sessions[p].values, align="left", bins=np.logspace(np.log10(min_value),np.log10(max_value), 20))
             plt.gca().set_xscale('log')
             plt.gca().set_yscale('log')
-            latex_ouput.write("            log scale on x and y & & log scale on y\n")
+            latex_output.write("            log scale on x and y & & log scale on y\n")
         elif p in log_scale_parameters_y:
             plt.gca().set_yscale('log')
-            latex_ouput.write("            log scale on y & & log scale on y\n")
-        latex_ouput.write("        \\end{tabular}\n    \\end{center}\n\\end{frame}\n\n")
+            latex_output.write("            log scale on y & & log scale on y\n")
+        latex_output.write("        \\end{tabular}\n    \\end{center}\n\\end{frame}\n\n")
         plt.savefig("Matplot/"+p+".png",format='png')
         plt.clf()
         # normalized histograms
@@ -136,23 +150,23 @@ if histogen:
 if scattergen:
     start_time = timelib.time()
     print("\n   * Generating scatter plots ...", end="\r")
-    for i in range (0, len(my_paramaters)):
-        for j in range (i+1, len(my_paramaters)):
-            plt.scatter(sessions[my_paramaters[i]].values, sessions[my_paramaters[j]].values)
+    for i in range (0, len(my_parameters)):
+        for j in range (i+1, len(my_parameters)):
+            plt.scatter(sessions[my_parameters[i]].values, sessions[my_parameters[j]].values)
             plt.grid(alpha=0.5)
-            plt.xlabel(my_paramaters[i])
-            plt.ylabel(my_paramaters[j])
-            if my_paramaters[i] in log_scale_parameters:
+            plt.xlabel(my_parameters[i])
+            plt.ylabel(my_parameters[j])
+            if my_parameters[i] in log_scale_parameters:
                 plt.gca().set_xscale('log')
-            if my_paramaters[j] in log_scale_parameters:
+            if my_parameters[j] in log_scale_parameters:
                 plt.gca().set_yscale('log')
-            plt.savefig("Matplot/Scatter/"+my_paramaters[i]+"-VS-"+my_paramaters[j]+".png",format='png')
+            plt.savefig("Matplot/Scatter/"+my_parameters[i]+"-VS-"+my_parameters[j]+".png",format='png')
             plt.clf()
-            plt.scatter(sessions["normalized_"+my_paramaters[i]].values, sessions["normalized_"+my_paramaters[j]].values)
+            plt.scatter(sessions["normalized_"+my_parameters[i]].values, sessions["normalized_"+my_parameters[j]].values)
             plt.grid(alpha=0.5)
-            plt.xlabel("Normalized "+my_paramaters[i])
-            plt.ylabel("Normalized "+my_paramaters[j])
-            plt.savefig("Matplot/Scatter/Normalized/normalized_"+my_paramaters[i]+"-VS-normalized_"+my_paramaters[j]+".png",format='png')
+            plt.xlabel("Normalized "+my_parameters[i])
+            plt.ylabel("Normalized "+my_parameters[j])
+            plt.savefig("Matplot/Scatter/Normalized/normalized_"+my_parameters[i]+"-VS-normalized_"+my_parameters[j]+".png",format='png')
             plt.clf()
             plt.close()
     print("   * Scatter plots generated in %.1f seconds." %(timelib.time()-start_time))
@@ -162,30 +176,50 @@ if scattergen:
 if scatter_density:
     start_time = timelib.time()
     print("\n   * Generating scatter density ...", end="\r")
-    latex_ouput.write("\n%%%%%%%%\n% SCATTER PLOTS\n%%%%%%%%\n\n")
-    for i in range (0, len(my_paramaters)):
-        for j in range (i+1, len(my_paramaters)):
+    latex_output.write("\n%%%%%%%%\n% SCATTER PLOTS\n%%%%%%%%\n\n")
+    for i in range (0, len(my_parameters)):
+        for j in range (i+1, len(my_parameters)):
             norm = ImageNormalize(vmin=0., vmax=1000, stretch=LogStretch())
 
-            plt.hist2d(sessions["normalized_"+my_paramaters[i]].values, sessions["normalized_"+my_paramaters[j]].values, norm=norm, bins=(20,20))
+            plt.hist2d(sessions["normalized_"+my_parameters[i]].values, sessions["normalized_"+my_parameters[j]].values, norm=norm, bins=(20,20))
             plt.colorbar(label="Number of points per pixel")
-            plt.xlabel("normalized_"+my_paramaters[i])
-            plt.ylabel("normalized_"+my_paramaters[j])
-            plt.savefig("Matplot/Density/"+my_paramaters[i]+"-VS-"+my_paramaters[j]+".png",format='png')
+            plt.xlabel("normalized_"+my_parameters[i])
+            plt.ylabel("normalized_"+my_parameters[j])
+            plt.savefig("Matplot/Density/"+my_parameters[i]+"-VS-"+my_parameters[j]+".png",format='png')
             plt.clf()
             plt.close()
 
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1, projection="scatter_density")
-            density = ax.scatter_density(sessions["normalized_"+my_paramaters[i]].values, sessions["normalized_"+my_paramaters[j]].values, norm=norm)
-            plt.xlabel("normalized_"+my_paramaters[i])
-            plt.ylabel("normalized_"+my_paramaters[j])
+            density = ax.scatter_density(sessions["normalized_"+my_parameters[i]].values, sessions["normalized_"+my_parameters[j]].values, norm=norm)
+            plt.xlabel("normalized_"+my_parameters[i])
+            plt.ylabel("normalized_"+my_parameters[j])
             fig.colorbar(density, label="Number of points per pixel")
-            plt.savefig("Matplot/Density/v2/"+my_paramaters[i]+"-VS-"+my_paramaters[j]+".png",format='png')
+            plt.savefig("Matplot/Density/v2/"+my_parameters[i]+"-VS-"+my_parameters[j]+".png",format='png')
             plt.clf()
 
-            latex_ouput.write("\\begin{frame}\n\\frametitle{"+my_paramaters[i].replace("_", "\_")+" VS "+my_paramaters[j].replace("_", "\_")+"}\n    \\begin{center}\n        \\includegraphics[scale=0.3]{plots/Scatter/"+my_paramaters[i]+"-VS-"+my_paramaters[j]+"}\n    \\end{center}\n    \\begin{tabular}{cc}\n        \\includegraphics[scale=0.3]{plots/Density/"+my_paramaters[i]+"-VS-"+my_paramaters[j]+"} & \\includegraphics[scale=0.3]{plots/Density/v2/"+my_paramaters[i]+"-VS-"+my_paramaters[j]+"}\n    \\end{tabular}\n\\end{frame}\n\n")
+            latex_output.write("\\begin{frame}\n\\frametitle{"+my_parameters[i].replace("_", "\_")+" VS "+my_parameters[j].replace("_", "\_")+"}\n    \\begin{center}\n        \\includegraphics[scale=0.3]{plots/Scatter/"+my_parameters[i]+"-VS-"+my_parameters[j]+"}\n    \\end{center}\n    \\begin{tabular}{cc}\n        \\includegraphics[scale=0.3]{plots/Density/"+my_parameters[i]+"-VS-"+my_parameters[j]+"} & \\includegraphics[scale=0.3]{plots/Density/v2/"+my_parameters[i]+"-VS-"+my_parameters[j]+"}\n    \\end{tabular}\n\\end{frame}\n\n")
     print("   * Scatter density generated in %.1f seconds." %(timelib.time()-start_time))
+
+#########
+# PEARSON
+if pearson:
+    start_time = timelib.time()
+    print("\n   * Computing Pearson correlation ...", end="\r")
+    latex_output.write("\n%%%%%%%%\n% PEARSON\n%%%%%%%%\n\n\\begin{frame}{Pearson}\n    \\begin{center}\n        \\resizebox{\\textwidth}{!}{\n        \\begin{tabular}{|c|c|c|c|c|c|c|}\n            \\hline\n            correlation")
+    for i in range (0, len(my_parameters)):
+        latex_output.write(" & "+my_parameters[i].replace("_", "\_"))
+    latex_output.write(" \\\\\n            \\hline")
+    pearson_mat = np.zeros((len(my_parameters), len(my_parameters)))
+    for i in range (0, len(my_parameters)):
+        latex_output.write("\n"+my_parameters[i].replace("_", "\_"))
+        for j in range (0, len(my_parameters)):
+            val = stats.pearson_matr(sessions[my_parameters[i]].values, sessions[my_parameters[j]].values)[0]
+            pearson_mat[i][j] = val
+            latex_output.write(" & {:.3f}".format(val))
+        latex_output.write(" \\\\\n            \\hline")
+    latex_output.write("\n        \\end{tabular}}\n    \\end{center}\n\\end{frame}")
+    print("   * Pearson correlation computed in {:.1f} seconds.".format(timelib.time()-begin_time))
 
 ###############
 # END OF SCRIPT

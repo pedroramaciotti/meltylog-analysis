@@ -84,6 +84,9 @@ print("        Computing session IDs ...", end='\r')
 log = log_sessions(log, max_inactive_minutes=30)
 print("        Session IDs computed in %.1f seconds." %(timelib.time()-start_time))
 
+log.to_csv(r"Outputs/MyLog.csv", index=None)
+quit()
+
 # Counting requests per session
 start_time = timelib.time()
 print("        Computing session IDs ...", end='\r')
