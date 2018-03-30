@@ -53,7 +53,7 @@ my_parameters = ["requests", "timespan", "standard_deviation", "star_chain_like"
 lognorm = ["requests", "timespan", "inter_req_mean_seconds", "standard_deviation", "popularity_mean"]
 
 # latex code generation output file
-latex_output = open("Outputs/latex", "w")
+latex_output = open("Outputs/latex_dimensions.tex", "w")
 
 # GENERATORS
 histogen = False
@@ -109,12 +109,12 @@ if histogen:
         plt.grid(alpha=0.5)
         plt.xlabel(p)
         plt.ylabel("Frequency")
-        latex_output.write("\\begin{frame}\n\\frametitle{"+p.replace("_", "\_")+"}\n    \\begin{center}\n        \\begin{tabular}{>{\\centering\\arraybackslash}m{0.4\\linewidth}>{\\centering\\arraybackslash}m{0.15\\linewidth}>{\\centering\\arraybackslash}m{0.4\\linewidth}}\n            \\includegraphics[scale=0.27]{plots/"+p+"} &")
+        latex_output.write("\\begin{frame}\n\\frametitle{"+p.replace("_", "\_")+"}\n    \\begin{center}\n        \\begin{tabular}{>{\\centering\\arraybackslash}m{0.4\\linewidth}>{\\centering\\arraybackslash}m{0.15\\linewidth}>{\\centering\\arraybackslash}m{0.4\\linewidth}}\n            \\includegraphics[width=0.4\\textwidth, keepaspectratio]{plots/"+p+"} &")
         if p in lognorm:
             latex_output.write(" \\tiny{$\\xrightarrow[\\frac{\\log(x)-\\log(min)}{\\log(max)-\\log(min)}]{}$} &")
         else:
             latex_output.write(" $\\xrightarrow[\\frac{x-min}{max-min}]{}$ &")
-        latex_output.write(" \\includegraphics[scale=0.27]{plots/Normalized/normalized_"+p+"} \\\\\n")
+        latex_output.write(" \\includegraphics[width=0.4\\textwidth, keepaspectratio]{plots/Normalized/normalized_"+p+"} \\\\\n")
         if p in log_scale_parameters:
             values = sessions[p].values
             min_value = values.min()

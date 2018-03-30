@@ -43,6 +43,9 @@ log_filename = "Files/MyLog.csv"
 url_data_filename = "Files/MyURLs.csv"
 filename = "Outputs/Sessions.csv"
 
+latex_output = open("Outputs/latex_clusters.tex", "w")
+elbow = False
+
 ####################
 # READING DATA FILES
 print("\n   * Loading files ...")
@@ -68,31 +71,58 @@ sessions = sessions[sessions.variance > 0]
 sessions = sessions[sessions.inter_req_mean_seconds > 0]
 print("\n   * Sessions filtered: {} rows".format(sessions.shape[0]))
 
+# standard deviation
+sessions["standard_deviation"] = sessions.variance.apply(lambda x: sqrt(x))
+
+print("\n   > Elbow analysis: {}".format(elbow))
+
 ############
 # CLUSTERING
 start_time = timelib.time()
 print("\n   * Clustering ...")
-kmeans = KMeans(n_clusters=10, random_state=0).fit(sessions[["requests", "timespan", "inter_req_mean_seconds", "variance"]].values)
+kmeans = KMeans(n_clusters=10, random_state=0).fit(sessions[["requests", "timespan", "inter_req_mean_seconds", "standard_deviation"]].values)
 cluster_labels=kmeans.labels_
 sessions["cluster_id"] = cluster_labels
+
 for cluster_id in sessions.cluster_id.unique():
     cluster_session = sessions[sessions.cluster_id == cluster_id].global_session_id.unique()
-    i = 0
-    for gsid in cluster_session:
-        if i >= 10:
-            break
-        session_draw("Graphs/"+str(cluster_id)+"_gsid"+str(gsid)+".png", gsid, log)
-        i += 1
     print("        Producing display of sessions for cluster %d"%cluster_id) 
     cluster_sessions = sessions[sessions.cluster_id == cluster_id].global_session_id.unique()
     cluster_log = log[log.global_session_id.isin(cluster_sessions)]
-    plot_sessions(cluster_log,'Clusters/cluster%d.png'%cluster_id,
+    sessions_id = plot_sessions(cluster_log,'Clusters/cluster%d.png'%cluster_id, cluster_id, 
                   labels=list(log.requested_my_thema.unique()),
-                  N_max_sessions=5,field="requested_my_thema",
+                  N_max_sessions=10,field="requested_my_thema",
                   max_time=None,time_resolution=None,mark_requests=False)
+    print("          Generating session graphs ...", end="\r")
+    session_draw(cluster_id, sessions_id, log)
+    print("          Session graphs successfully generated")
+    latex_output.write("% cluster "+str(cluster_id)+"\n\\begin{frame}{Cluster "+str(cluster_id)+"}\n    \\begin{columns}\n        \\begin{column}{.6\\textwidth}\n            \\includegraphics[width=\\textwidth, keepaspectratio]{clusters/cluster"+str(cluster_id)+"}\n        \\end{column}\n        \\begin{column}{.4\\textwidth}\n            \n            \\begin{tabular}{|c|c|}\n                \\hline\n                \\multicolumn{2}{|c|}{center} \\\\\n                \\hline\n")
+    for i in range(0, kmeans.cluster_centers_.shape[1]):
+        latex_output.write("                dim"+str(i)+" & {:.3f} \\\\\n                \\hline\n".format(kmeans.cluster_centers_[cluster_id-1][i]))
+    latex_output.write("            \\end{tabular}\n        \\end{column}\n    \\end{columns}\n\\end{frame}\n\n")
+
+    latex_output.write("\\begin{frame}{Cluster "+str(cluster_id)+" -- Graphs}\n    \\resizebox{\\textwidth}{!}{\n    \\begin{tabular}{c|c|c|c|c}\n        "+str(sessions_id[0])+" & "+str(sessions_id[1])+" & "+str(sessions_id[2])+" & "+str(sessions_id[3])+" & "+str(sessions_id[4])+" \\\\\n        \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[0])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[1])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[2])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[3])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[4])+"} \\\\\n        \\hline\n        "+str(sessions_id[5])+" & "+str(sessions_id[6])+" & "+str(sessions_id[7])+" & "+str(sessions_id[8])+" & "+str(sessions_id[9])+" \\\\\n        \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[5])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[6])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[7])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[8])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[9])+"}\n    \\end{tabular}}\n\\end{frame}\n\n")
 plot_palette(labels=list(log.requested_my_thema.unique()), filename="Clusters/palette.png")
 print("     Clustered in {:.1f} seconds.".format((timelib.time()-start_time)))
 
+# elbow analysis
+if elbow:
+    start_time = timelib.time()
+    print("\n   * Computing elbow ...", end="\r")
+    distorsions = []
+    explore_N_clusters=40
+    for k in range(2, explore_N_clusters):
+        kmeans = KMeans(n_clusters=k).fit(sessions[["requests", "timespan", "inter_req_mean_seconds", "standard_deviation"]].values)
+        distorsions.append(kmeans.inertia_)
+    fig = plt.figure(figsize=(15, 5))
+    plt.plot(range(2, explore_N_clusters), distorsions)
+    plt.grid(True)
+    plt.title('Elbow curve')
+    plt.savefig('Clusters/elbow.png', format='png')
+    plt.clf()
+    plt.close()
+    print("     Elbow computed in {:.1f} seconds.".format((timelib.time()-start_time)))
+
 ###############
 # END OF SCRIPT
-print("\n   * Done in {:.1f} seconds.\n".format(timelib.time()-begin_time))
+print("\n   * Done in {:.1f} seconds.\n".format(timelib.time()-begin_time)) 
