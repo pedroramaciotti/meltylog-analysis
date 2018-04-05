@@ -14,29 +14,29 @@ from math import log
 def zf(s):
     s=str(s)
     if len(s)==1:
-        return '0'+s;
+        return '0'+s
     else:
-        return s;
+        return s
 
 # shape parameters
 
 def star_chain_like(log):
-    return log[~log.requested_url.isin(log.referrer_url)].shape[0]/log.shape[0];
+    return log[~log.requested_url.isin(log.referrer_url)].shape[0]/log.shape[0]
 
 def bifurcation(log):
-    return (log.referrer_url.value_counts()>1).sum()/len(log.referrer_url.unique());
+    return (log.referrer_url.value_counts()>1).sum()/len(log.referrer_url.unique())
 
 # time intervals 
 
 def mean_interval_time(log,field='timestamp'):
     if log.shape[0]==0:
         return 0.0
-    return log[field].apply(lambda x: pd.Timestamp(x)).diff().apply(lambda x: x.seconds).mean();
+    return log[field].apply(lambda x: pd.Timestamp(x)).diff().apply(lambda x: x.seconds).mean()
 
 def variance_interval_time(log,field='timestamp'):
     if log.shape[0]==0:
         return 0.0
-    return log[field].apply(lambda x: pd.Timestamp(x)).diff().apply(lambda x: x.seconds).var();
+    return log[field].apply(lambda x: pd.Timestamp(x)).diff().apply(lambda x: x.seconds).var()
     
 # Assign data tu log entries
 def log_classification(log,urldata,fields):
@@ -51,7 +51,7 @@ def log_classification(log,urldata,fields):
     
         new_log['requested_'+field]=req_urls.map(lookup_table)
         new_log['referrer_'+field]=ref_urls.map(lookup_table)
-    return new_log;
+    return new_log
 
 # Identify sessions
 
@@ -64,7 +64,7 @@ def log_sessions(log,max_inactive_minutes):
     # Detect changes of user
     diff_user = new_log.user != new_log.user.shift()
     new_log['global_session_id'] = (diff_user | gt_xmin).cumsum()
-    return new_log;
+    return new_log
 
 # proportional abundance
 
@@ -79,7 +79,7 @@ def proportional_abundance(log,field,path='IT'):
     pa_df=histogram/histogram.values.sum()
     if abs(1.0-pa_df.values.sum())>1e-8:
         raise AssertionError("ERROR: Proportional abundance distribution does not sum up to one.")
-    return pa_df.values[:,0],list(pa_df.index);
+    return pa_df.values[:,0],list(pa_df.index)
     
 def normalize(serie):
     max_value = serie.max()
@@ -87,7 +87,7 @@ def normalize(serie):
     if max_value == min_value:
         return serie.apply(lambda x: x / serie.shape[0])
     else:
-        return serie.apply(lambda x: (x - min_value)/(max_value- min_value));
+        return serie.apply(lambda x: (x - min_value)/(max_value- min_value))
 
 def log_normalize(serie):
     max_value = log(serie.max())
@@ -95,4 +95,4 @@ def log_normalize(serie):
     if max_value == min_value:
         return serie.apply(lambda x: x / serie.shape[0])
     else:
-        return serie.apply(lambda x: (log(x) - min_value)/(max_value- min_value));
+        return serie.apply(lambda x: (log(x) - min_value)/(max_value- min_value))

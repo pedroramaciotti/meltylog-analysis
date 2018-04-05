@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from math import * 
+import random
 
 cmap = plt.cm.gist_ncar
 
@@ -21,13 +22,24 @@ def plot_palette(labels,filename):
     image[:,0,:]=colormap
     plt.imshow(image)
     plt.yticks(range(len(labels)), labels)
-#    plt.ylabels(labels)
     plt.xticks([0], [''], fontsize=4)
     plt.savefig(filename, format='png')
     plt.clf()
     plt.close()    
-    return;
-    
+    return
+
+def alter_plot_palette(labels,filename): 
+    cmap = plt.cm.Set3
+    colormap = cmap(np.linspace(0., 1., len(labels)))
+    image=np.zeros((1,len(labels),4))
+    image[0,:,:]=colormap
+    plt.imshow(image)
+    plt.xticks(range(len(labels)), labels, fontsize=4)
+    plt.yticks([0], [''], fontsize=4)
+    plt.savefig(filename, format='png')
+    plt.clf()
+    plt.close()    
+    return
     
  
 def plot_sessions(cluster_log,filename,cluster_id,labels,
@@ -39,6 +51,7 @@ def plot_sessions(cluster_log,filename,cluster_id,labels,
     # list of sessions
     sessions = list(plot_log.global_session_id.unique())
     if plot_log.shape[0]>N_max_sessions:
+        # random.shuffle(sessions)
         sessions=sessions[:N_max_sessions]
         # updating log
         plot_log=plot_log[plot_log.global_session_id.isin(sessions)]
@@ -72,7 +85,7 @@ def plot_sessions(cluster_log,filename,cluster_id,labels,
     colormap=np.vstack((np.array([0,0,0,1]),colormap))
     
     # Filling the matrix
-    width = 50
+    width = int(0.005*time_window_seconds)
     image=np.zeros((len(sessions),int(time_window_seconds),4))
     session_counter=0
     for session in sessions:
@@ -110,6 +123,7 @@ def plot_sessions(cluster_log,filename,cluster_id,labels,
     plt.ylabel('Sessions')
     plt.title("Cluster "+str(cluster_id))
     plt.grid(alpha=0.5)
+    plt.tick_params(axis="both", which="major", labelsize=6)
     # Lines and axes
     ax = plt.gca();
     #   Major ticks

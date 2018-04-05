@@ -43,8 +43,11 @@ log_filename = "Files/MyLog.csv"
 url_data_filename = "Files/MyURLs.csv"
 filename = "Outputs/Sessions.csv"
 
+# dimensions = ["requests", "timespan", "inter_req_mean_seconds", "standard_deviation"]
+dimensions = ["requests","timespan","requested_category_richness","requested_my_thema_richness","star_chain_like","bifurcation","entropy","standard_deviation","popularity_mean","inter_req_mean_seconds","TV_proportion","Celebrities_proportion","Series_proportion","Movies_proportion","Music_proportion","Unclassifiable_proportion","Comic_proportion","VideoGames_proportion","Other_proportion","Sport_proportion","News_proportion","read_pages"]
 latex_output = open("Outputs/latex_clusters.tex", "w")
 elbow = False
+graph = True
 
 ####################
 # READING DATA FILES
@@ -75,16 +78,36 @@ print("\n   * Sessions filtered: {} rows".format(sessions.shape[0]))
 sessions["standard_deviation"] = sessions.variance.apply(lambda x: sqrt(x))
 
 print("\n   > Elbow analysis: {}".format(elbow))
+print("   > Session graph generation: {}".format(graph))
 
 ############
 # CLUSTERING
 start_time = timelib.time()
 print("\n   * Clustering ...")
-kmeans = KMeans(n_clusters=10, random_state=0).fit(sessions[["requests", "timespan", "inter_req_mean_seconds", "standard_deviation"]].values)
+kmeans = KMeans(n_clusters=10, random_state=0).fit(sessions[dimensions].values)
 cluster_labels=kmeans.labels_
 sessions["cluster_id"] = cluster_labels
 
-for cluster_id in sessions.cluster_id.unique():
+num_cluster = sessions.cluster_id.unique()
+num_cluster.sort()
+
+# recap center
+latex_output.write("% RECAP\n\\begin{tabular}{|c|")
+for dim in dimensions:
+    latex_output.write("c|")
+latex_output.write("}\n    \\hline\n    cluster")
+for dim in dimensions:
+    latex_output.write(" & "+str(dim).replace("_", "\_"))
+latex_output.write(" \\\\\n    \\hline\n")
+for cluster_id in num_cluster:
+    latex_output.write("    "+str(cluster_id))
+    for i in range(0, kmeans.cluster_centers_.shape[1]):
+        latex_output.write(" & {:.3f}".format(kmeans.cluster_centers_[cluster_id][i]))
+    latex_output.write(" \\\\\n    \\hline\n")
+latex_output.write("\\end{tabular}\n\n")
+
+# display
+for cluster_id in num_cluster:
     cluster_session = sessions[sessions.cluster_id == cluster_id].global_session_id.unique()
     print("        Producing display of sessions for cluster %d"%cluster_id) 
     cluster_sessions = sessions[sessions.cluster_id == cluster_id].global_session_id.unique()
@@ -93,15 +116,16 @@ for cluster_id in sessions.cluster_id.unique():
                   labels=list(log.requested_my_thema.unique()),
                   N_max_sessions=10,field="requested_my_thema",
                   max_time=None,time_resolution=None,mark_requests=False)
-    print("          Generating session graphs ...", end="\r")
-    session_draw(cluster_id, sessions_id, log)
-    print("          Session graphs successfully generated")
-    latex_output.write("% cluster "+str(cluster_id)+"\n\\begin{frame}{Cluster "+str(cluster_id)+"}\n    \\begin{columns}\n        \\begin{column}{.6\\textwidth}\n            \\includegraphics[width=\\textwidth, keepaspectratio]{clusters/cluster"+str(cluster_id)+"}\n        \\end{column}\n        \\begin{column}{.4\\textwidth}\n            \n            \\begin{tabular}{|c|c|}\n                \\hline\n                \\multicolumn{2}{|c|}{center} \\\\\n                \\hline\n")
-    for i in range(0, kmeans.cluster_centers_.shape[1]):
-        latex_output.write("                dim"+str(i)+" & {:.3f} \\\\\n                \\hline\n".format(kmeans.cluster_centers_[cluster_id-1][i]))
-    latex_output.write("            \\end{tabular}\n        \\end{column}\n    \\end{columns}\n\\end{frame}\n\n")
+    if graph:
+        print("          Generating session graphs ...", end="\r")
+        session_draw(cluster_id, sessions_id, log)
+        print("          Session graphs successfully generated")
+        latex_output.write("% cluster "+str(cluster_id)+"\n\\begin{frame}{Cluster "+str(cluster_id)+"}\n    \\begin{columns}\n        \\begin{column}{.6\\textwidth}\n            \\includegraphics[width=\\textwidth, keepaspectratio]{clusters/cluster"+str(cluster_id)+"}\n        \\end{column}\n        \\begin{column}{.4\\textwidth}\n            \\begin{center}\n              \\scalebox{.5}{\\begin{tabular}{|c|c|}\n                  \\hline\n                  \\multicolumn{2}{|c|}{mean} \\\\\n                  \\hline\n")
+        for i in range(0, kmeans.cluster_centers_.shape[1]):
+            latex_output.write("                  "+dimensions[i].replace("_", "\_")+" & {:.3f} \\\\\n                  \\hline\n".format(kmeans.cluster_centers_[cluster_id][i]))
+        latex_output.write("              \\end{tabular}}\n\n              \\includegraphics[width=\\textwidth, keepaspectratio]{clusters/palette}\n            \\end{center}\n        \\end{column}\n    \\end{columns}\n\\end{frame}\n\n")
 
-    latex_output.write("\\begin{frame}{Cluster "+str(cluster_id)+" -- Graphs}\n    \\resizebox{\\textwidth}{!}{\n    \\begin{tabular}{c|c|c|c|c}\n        "+str(sessions_id[0])+" & "+str(sessions_id[1])+" & "+str(sessions_id[2])+" & "+str(sessions_id[3])+" & "+str(sessions_id[4])+" \\\\\n        \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[0])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[1])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[2])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[3])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[4])+"} \\\\\n        \\hline\n        "+str(sessions_id[5])+" & "+str(sessions_id[6])+" & "+str(sessions_id[7])+" & "+str(sessions_id[8])+" & "+str(sessions_id[9])+" \\\\\n        \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[5])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[6])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[7])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[8])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[9])+"}\n    \\end{tabular}}\n\\end{frame}\n\n")
+        latex_output.write("\\begin{frame}{Cluster "+str(cluster_id)+" -- Graphs}\n    \\resizebox{\\textwidth}{!}{\n    \\begin{tabular}{c|c|c|c|c}\n        \\huge{"+str(sessions_id[0])+"} & \\huge{"+str(sessions_id[1])+"} & \\huge{"+str(sessions_id[2])+"} & \\huge{"+str(sessions_id[3])+"} & \\huge{"+str(sessions_id[4])+"} \\\\\n        \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[0])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[1])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[2])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[3])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[4])+"} \\\\\n        \\hline\n        \\huge{"+str(sessions_id[5])+"} & \\huge{"+str(sessions_id[6])+"} & \\huge{"+str(sessions_id[7])+"} & \\huge{"+str(sessions_id[8])+"} & \\huge{"+str(sessions_id[9])+"} \\\\\n        \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[5])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[6])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[7])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[8])+"} & \\includegraphics[width=\\textwidth, keepaspectratio]{graphs/"+str(cluster_id)+"_session"+str(sessions_id[9])+"}\n    \\end{tabular}}\n\\end{frame}\n\n")
 plot_palette(labels=list(log.requested_my_thema.unique()), filename="Clusters/palette.png")
 print("     Clustered in {:.1f} seconds.".format((timelib.time()-start_time)))
 
@@ -112,7 +136,7 @@ if elbow:
     distorsions = []
     explore_N_clusters=40
     for k in range(2, explore_N_clusters):
-        kmeans = KMeans(n_clusters=k).fit(sessions[["requests", "timespan", "inter_req_mean_seconds", "standard_deviation"]].values)
+        kmeans = KMeans(n_clusters=k).fit(sessions[dimensions].values)
         distorsions.append(kmeans.inertia_)
     fig = plt.figure(figsize=(15, 5))
     plt.plot(range(2, explore_N_clusters), distorsions)
