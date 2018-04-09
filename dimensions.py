@@ -84,8 +84,8 @@ print("        Computing session IDs ...", end='\r')
 log = log_sessions(log, max_inactive_minutes=30)
 print("        Session IDs computed in %.1f seconds." %(timelib.time()-start_time))
 
+log.drop_duplicates(subset=["user", "timespan", "requested_url", "referrer_url"], inplace=True)
 log.to_csv(r"Outputs/MyLog.csv", index=None)
-quit()
 
 # Counting requests per session
 start_time = timelib.time()
@@ -176,11 +176,12 @@ shannon = entropy.global_session_id.groupby("global_session_id").apply(lambda x:
 session_data["entropy"] = session_data.global_session_id.map(pd.Series(data=shannon.values, index=shannon.index))
 print("        Shannon entropy computed in %.1f seconds." %(timelib.time()-start_time))
 
-# Determining variance between requests
+# Determining variance/standard_deviation between requests
 start_time = timelib.time()
 print("        Computing variance inter-request time ...", end='\r')
 inter_request_variance_seconds = log[['timestamp', 'global_session_id']].groupby('global_session_id').aggregate(lambda x: variance_interval_time(x))
 session_data['variance'] = session_data.global_session_id.map(inter_request_variance_seconds.timestamp)
+sessions["standard_deviation"] = sessions.variance.apply(lambda x: sqrt(x))
 print("        Variance inter-request computed in %.1f seconds." %(timelib.time()-start_time))
 
 # Determining number of "read" pages

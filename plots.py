@@ -42,9 +42,9 @@ def alter_plot_palette(labels,filename):
     return
     
  
-def plot_sessions(cluster_log,filename,cluster_id,labels,
-                  N_max_sessions=10,field='category',
-                  max_time=None,time_resolution=None,mark_requests=False):
+def plot_sessions(cluster_log, filename, cluster_id, labels,
+                  N_max_sessions=10, field="category", width=0,
+                  max_time=None, time_resolution=None, mark_requests=False):
     
     plot_log=cluster_log.copy(deep=True)
     
@@ -85,7 +85,8 @@ def plot_sessions(cluster_log,filename,cluster_id,labels,
     colormap=np.vstack((np.array([0,0,0,1]),colormap))
     
     # Filling the matrix
-    width = int(0.005*time_window_seconds)
+    if width == 0:
+        width = int(0.005*time_window_seconds)
     image=np.zeros((len(sessions),int(time_window_seconds),4))
     session_counter=0
     for session in sessions:
