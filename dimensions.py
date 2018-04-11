@@ -19,7 +19,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from pylab import *
-import seaborn as sns
+import pathlib
 
 ##################################
 ##################################
@@ -30,13 +30,14 @@ import seaborn as sns
 ##################################
 ##################################
 
+pathlib.Path("Outputs").mkdir(parents=True, exist_ok=True)
 begin_time = timelib.time()
 
 ####################
 ## READING THE FILES
 print("\n   * Loading files ...")
-log_filename = 'Files/MeltyLog_2Sep2017.csv'
-url_data_filename = 'Files/MeltyURLs_2Sep2017.csv'
+log_filename = 'Melty/log.csv'
+url_data_filename = 'Melty/pages.csv'
 start_time = timelib.time()
 print("        Loading "+log_filename+" ...", end="\r")
 log = pd.read_csv(log_filename, sep=',', dtype='object', na_filter=False)
@@ -84,7 +85,6 @@ print("        Computing session IDs ...", end='\r')
 log = log_sessions(log, max_inactive_minutes=30)
 print("        Session IDs computed in %.1f seconds." %(timelib.time()-start_time))
 
-log.drop_duplicates(subset=["user", "timespan", "requested_url", "referrer_url"], inplace=True)
 log.to_csv(r"Outputs/MyLog.csv", index=None)
 
 # Counting requests per session
@@ -181,7 +181,7 @@ start_time = timelib.time()
 print("        Computing variance inter-request time ...", end='\r')
 inter_request_variance_seconds = log[['timestamp', 'global_session_id']].groupby('global_session_id').aggregate(lambda x: variance_interval_time(x))
 session_data['variance'] = session_data.global_session_id.map(inter_request_variance_seconds.timestamp)
-sessions["standard_deviation"] = sessions.variance.apply(lambda x: sqrt(x))
+session_data["standard_deviation"] = session_data.variance.apply(lambda x: sqrt(x))
 print("        Variance inter-request computed in %.1f seconds." %(timelib.time()-start_time))
 
 # Determining number of "read" pages
@@ -214,12 +214,26 @@ print("        Requested_url popularity computed in %.1f seconds." %(timelib.tim
 ##################################
 ##################################
 
-start_time = timelib.time()
-print("\n   * Generating output file ...", end="\r")
 result = session_data.sort_values(by="global_session_id", ascending=True)
 result["timespan"] = result.timespan.apply(lambda x: x.seconds)
+
+# normalization + filtering
+dimensions = ["requests","timespan","requested_category_richness","requested_my_thema_richness","star_chain_like","bifurcation","entropy","standard_deviation","popularity_mean","inter_req_mean_seconds","TV_proportion","Celebrities_proportion","Series_proportion","Movies_proportion","Music_proportion","Unclassifiable_proportion","Comic_proportion","VideoGames_proportion","Other_proportion","Sport_proportion","News_proportion","read_pages", "variance"]
+lognorm = ["requests", "timespan", "inter_req_mean_seconds", "standard_deviation", "popularity_mean", "variance"]
+start_time = timelib.time()
+print("\n   * Normalizing dimensions ...", end="\r")
+for p in dimensions:
+    if p in lognorm:
+        result["normalized_"+p] = result[p]+1 # here we need to shift our data for log normalizatiion
+        result["normalized_"+p] = log_normalize(result["normalized_"+p])
+    else:
+        result["normalized_"+p] = normalize(result[p])
+print("   * Dimensions normalized in %.1f seconds." %(timelib.time()-start_time))
+
+start_time = timelib.time()
+print("\n   * Generating 'Outputs/Sessions.csv' ...", end="\r")
 result.to_csv(r"Outputs/Sessions.csv", index=None)
-print("     Output file generated in {:.1f} seconds.".format(timelib.time()-start_time))
+print("   * 'Outputs/Sessions.csv' generated in {:.1f} seconds.".format(timelib.time()-start_time))
 
 ###############
 # END OF SCRIPT

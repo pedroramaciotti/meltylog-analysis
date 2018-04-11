@@ -65,9 +65,6 @@ sessions = sessions[sessions.inter_req_mean_seconds > 0]
 log.drop_duplicates(subset=["user", "timespan", "requested_url", "referrer_url"], inplace=True)
 print("\n   * Sessions filtered: {} rows".format(sessions.shape[0]))
 
-# standard deviation
-sessions["standard_deviation"] = sessions.variance.apply(lambda x: sqrt(x))
-
 # normalization
 normalized_dimensions = []
 print("\n   * Normalizing dimensions ...", end="\r")
@@ -105,8 +102,8 @@ for dim in normalized_dimensions:
 latex_output.write(" \\\\\n    \\hline\n")
 for cluster_id in num_cluster:
     latex_output.write("    "+str(cluster_id)+" & "+str(sessions[sessions.cluster_id==cluster_id].shape[1]))
-    for i in range(0, kmeans.cluster_centers_.shape[1]):
-        latex_output.write(" & {:.3f}".format(kmeans.cluster_centers_[cluster_id][i]))
+    for i in range(0, kmeans.cluster_centers_.shape[0]):
+        latex_output.write(" & {:.3f}".format(kmeans.cluster_cenaters_[cluster_id][i]))
     latex_output.write(" \\\\\n    \\hline\n")
 latex_output.write("\\end{tabular}\n\n")
 
@@ -124,7 +121,7 @@ for cluster_id in num_cluster:
         print("          Generating session graphs ...", end="\r")
         session_draw(cluster_id, sessions_id, log)
         print("          Session graphs successfully generated")
-        latex_output.write("% cluster "+str(cluster_id)+"\n\\begin{frame}{Cluster "+str(cluster_id)+"}\n    \\begin{columns}\n        \\begin{column}{.6\\textwidth}\n            \\includegraphics[width=\\textwidth, keepaspectratio]{clusters/cluster"+str(cluster_id)+"}\n        \\end{column}\n        \\begin{column}{.4\\textwidth}\n            \\begin{center}\n              \\scalebox{.5}{\\begin{tabular}{|c|c|}\n                  \\hline\n                  \\multicolumn{2}{|c|}{mean} \\\\\n                  \\hline\n                  size & "+str(sessions[sessions.cluster_id==cluster_id].shape[1])+" \\\\\n\\hline\n")
+        latex_output.write("% cluster "+str(cluster_id)+"\n\\begin{frame}{Cluster "+str(cluster_id)+"}\n    \\begin{columns}\n        \\begin{column}{.6\\textwidth}\n            \\includegraphics[width=\\textwidth, keepaspectratio]{clusters/cluster"+str(cluster_id)+"}\n        \\end{column}\n        \\begin{column}{.4\\textwidth}\n            \\begin{center}\n              \\scalebox{.5}{\\begin{tabular}{|c|c|}\n                  \\hline\n                  \\multicolumn{2}{|c|}{mean} \\\\\n                  \\hline\n                  size & "+str(sessions[sessions.cluster_id==cluster_id].shape[0])+" \\\\\n                  \\hline\n")
         for i in range(0, kmeans.cluster_centers_.shape[1]):
             latex_output.write("                  "+normalized_dimensions[i].replace("_", "\_")+" & {:.3f} \\\\\n                  \\hline\n".format(kmeans.cluster_centers_[cluster_id][i]))
         latex_output.write("              \\end{tabular}}\n\n              \\includegraphics[width=\\textwidth, keepaspectratio]{clusters/palette}\n            \\end{center}\n        \\end{column}\n    \\end{columns}\n\\end{frame}\n\n")

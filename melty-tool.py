@@ -31,7 +31,16 @@ import sys, os
 #############################################################
 #############################################################
 
+# ================= #
+#     VARIABLES     #
+# ================= #
+
 logo = "\n                _ _               _              _ \n _ __ ___   ___| | |_ _   _      | |_ ___   ___ | |\n| '_ ` _ \ / _ \ | __| | | |_____| __/ _ \ / _ \| |\n| | | | | |  __/ | |_| |_| |_____| || (_) | (_) | |\n|_| |_| |_|\___|_|\__|\__, |      \__\___/ \___/|_|\n                      |___/                        \n\n"
+log_filename = "Files/MyLog.csv"
+session_filename = "Files/Sessions.csv"
+dimensions = ["requests","timespan","requested_category_richness","requested_my_thema_richness","star_chain_like","bifurcation","entropy","standard_deviation","popularity_mean","inter_req_mean_seconds","TV_proportion","Celebrities_proportion","Series_proportion","Movies_proportion","Music_proportion","Unclassifiable_proportion","Comic_proportion","VideoGames_proportion","Other_proportion","Sport_proportion","News_proportion","read_pages", "variance"]
+lognorm = ["requests", "timespan", "inter_req_mean_seconds", "standard_deviation", "popularity_mean", "variance"]
+
 
 # ====================== #
 #     MENU FUNCTIONS     #
@@ -40,19 +49,24 @@ logo = "\n                _ _               _              _ \n _ __ ___   ___| 
 menu_actions = {}
 
 def main_menu():
+    global menu_actions
+    menu_actions = {
+        "main_menu": main_menu,
+        "1": clustering_menu,
+        "2": session_log_menu,
+        "q": exit,
+    }
     os.system("clear")
     print(logo)
     print("# ==================== #\n#     MAIN PROGRAM     #\n# ==================== #\n")
     print("1. Clustering")
     print("2. Session log")
-    print("\n0. Quit")
+    print("\nq. Quit")
     choice = input(" >>  ")
     exec_menu(choice)
     return
 
 def exec_menu(choice):
-    os.system("clear")
-    print(logo)
     ch = choice.lower()
     if ch == "":
         menu_actions["main_menu"]()
@@ -61,53 +75,96 @@ def exec_menu(choice):
             menu_actions[ch]()
         except KeyError:
             print("Invalid selection, please try again.\n")
-            menu_actions["main_menu"]()
+            exec_menu(input(" >>  "))
     return
 
 def clustering_menu():
+    global menu_actions
+    menu_actions = {
+        "main_menu": main_menu,
+        "0": exit,
+    }
+    os.system("clear")
+    print(logo)
     print("# ================== #\n#     CLUSTERING     #\n# ================== #\n")
-    print("9. Back")
-    print("0. Quit")
-    choice = input(" >>  ")
-    exec_menu(choice)
+    print("Enter the number of clusters")
+    n_clusters = input(" >>  ")
+    if n_clusters == "q":
+        main_menu()
+        return
+    dim = select_dimensions()
+    if not n_clusters.isdigit() or int(n_clusters) <= 0 or len(dim) == 0:
+        clustering_menu()
+    clustering(int(n_clusters), dim)
     return
+
+def select_dimensions():
+    dim = []
+    choice = "start"
+    while choice != "":
+        os.system("clear")
+        print(logo)
+        print("# ================== #\n#     CLUSTERING     #\n# ================== #\n")
+        print("Type a dimension to add/remove (press ENTER to confirm)")
+        for d in dimensions:
+            if d in dim:
+                print("   [X] {}".format(d))
+            else:
+                print("   [ ] {}".format(d))
+        choice = input(" >>  ")
+        if choice == "q":
+            main_menu()
+        elif choice in dim:
+            dim.remove(choice)
+        elif choice in dimensions:
+            dim.append(choice)
+    return dim
 
 def session_log_menu():
+    os.system("clear")
+    print(logo)
     print("# ======================== #\n#     SESSION LOG MENU     #\n# ======================== #\n")
-    print("9. Back")
-    print("0. Quit")
+    print("Enter a <global_session_id> to print it")
     choice = input(" >>  ")
-    exec_menu(choice)
+    print_session(choice)
     return
-
-def back():
-    menu_actions["main_menu"]()
 
 def exit():
     os.system("clear")
     sys.exit()
 
-menu_actions = {
-    "main_menu": main_menu,
-    "1": clustering_menu,
-    "2": session_log_menu,
-    "0": exit,
-}
+# ======================= #
+#     MELTY FUNCTIONS     #
+# ======================= #
+
+def print_session(session_id):
+    if session_id == "q":
+        menu_actions["main_menu"]()
+    elif session_id.isdigit() and int(session_id) > 0:
+        # DO SOMETHING
+        session = log[log.global_session_id == int(session_id)]
+        if session.shape[0] == 0:
+            print("Session {} not found.".format(session_id))
+        input("Press ENTER to continue ...")
+    else:
+        print("Invalid input, please try again.\n")
+        print_session(input(" >>  "))
+    main_menu()
+    return
+
+def clustering(n_clusters, dim):
+    print(n_clusters)
+    print(dim)
+    input("Press ENTER to continue ...")
+    main_menu()
+    return
 
 # ==================== #
 #     MAIN PROGRAM     #
 # ==================== #
 
+os.system("clear")
 print(logo)
-
-log_filename = "Files/MyLog.csv"
-session_filename = "Files/Sessions.csv"
-
-dimensions = ["requests","timespan","requested_category_richness","requested_my_thema_richness","star_chain_like","bifurcation","entropy","standard_deviation","popularity_mean","inter_req_mean_seconds","TV_proportion","Celebrities_proportion","Series_proportion","Movies_proportion","Music_proportion","Unclassifiable_proportion","Comic_proportion","VideoGames_proportion","Other_proportion","Sport_proportion","News_proportion","read_pages"]
-
-# for log normalization
-lognorm = ["requests", "timespan", "inter_req_mean_seconds", "standard_deviation", "popularity_mean"]
-
 # loading files
 # print("\n   * Loading files ...")
 # start_time = timelib.time()
@@ -119,9 +176,11 @@ lognorm = ["requests", "timespan", "inter_req_mean_seconds", "standard_deviation
 # sessions = pd.read_csv(session_filename, sep=',')
 # print("        "+session_filename+" loaded ({} rows) in {:.1f} seconds.".format(sessions.shape[0], timelib.time()-start_time))
 # sessions.fillna(0, inplace=True)
+
 pathlib.Path("Latex").mkdir(parents=True, exist_ok=True)
 pathlib.Path("Graphs").mkdir(parents=True, exist_ok=True)
 pathlib.Path("Clusters").mkdir(parents=True, exist_ok=True)
+pathlib.Path("Sessions").mkdir(parents=True, exist_ok=True)
 
 # normalization
 # normalized_dimensions = []
