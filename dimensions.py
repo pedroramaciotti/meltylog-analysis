@@ -41,6 +41,7 @@ url_data_filename = 'Melty/pages.csv'
 start_time = timelib.time()
 print("        Loading "+log_filename+" ...", end="\r")
 log = pd.read_csv(log_filename, sep=',', dtype='object', na_filter=False)
+# log = log[:1000] # to remove
 print("        "+log_filename+" loaded ({} rows) in {:.1f} seconds.".format(log.shape[0], timelib.time()-start_time))
 start_time = timelib.time()
 print("        Loading "+url_data_filename+" ...", end="\r")
@@ -48,31 +49,21 @@ urldata = pd.read_csv(url_data_filename, sep=',',dtype='object', na_filter=False
 urldata.drop_duplicates(subset=['url'], inplace=True)
 print("        "+url_data_filename+" loaded ({} rows) in {:.1f} seconds.".format(urldata.shape[0], timelib.time()-start_time))
 
-#######################################################
-## MANAGING URL CLASSIFICATION: CATEGORY, THEMA, OTHER?
-start_time = timelib.time()
-print("\n   * Computing my_thema ...")
-urldata['my_thema'] = urldata['melty_thema_name'].apply(thema_mapper)
-urldata['my_thema'] = urldata.apply(lambda row: row.category+'(ext)' if not(row.url.startswith('www.melty.fr')) else row.my_thema, axis=1)
-print("     my_thema field computed in %.1f seconds." %(timelib.time()-start_time))
-
 #######################################
 ## ASSIGNING URL TO URLs IN LOG ENTRIES
 start_time = timelib.time()
 print("\n   * Asigning URL data to log entries ...")
-log = log_classification(log, urldata, fields=['category', 'melty_thema_name', 'my_thema'])
+log = log_classification(log, urldata, fields=['category', 'topic'])
 ## ASSIGNING VALUES TO NA VALUES
 log.requested_category.fillna('other', inplace=True)
 log.referrer_category.fillna('other', inplace=True)
-log.requested_melty_thema_name.fillna('', inplace=True)
-log.referrer_melty_thema_name.fillna('', inplace=True)
-log.requested_my_thema.fillna('Unclassifiable', inplace=True)
-log.referrer_my_thema.fillna('Unclassifiable', inplace=True)
+log.requested_topic.fillna('Unclassifiable', inplace=True)
+log.referrer_topic.fillna('Unclassifiable', inplace=True)
 print("     URL data assigned to log entries in %.1f seconds." %(timelib.time()-start_time))
 
 ####################################
 # DATAFRAME WITH SESSION INFORMATION
-session_data = pd.DataFrame(columns=['global_session_id', 'user', 'requests', 'req_from_unknown', 'pc_from_unknown','timespan', 'start', 'end','requested_category_richness', 'requested_thema_richness', 'requested_my_thema_richness','root_social', 'root_search','star_chain_like', 'bifurcation','cluster_id','requested_my_thema_proportion','entropy', "variance", "popularity_mean"])
+session_data = pd.DataFrame(columns=['global_session_id', 'user', 'requests', 'req_from_unknown', 'pc_from_unknown','timespan', 'start', 'end','requested_category_richness', 'requested_topic_richness','root_social', 'root_search','star_chain_like', 'bifurcation','cluster_id','requested_topic_proportion','entropy', "variance", "popularity_mean"])
 
 ###############################
 # COMPUTING SESSION INFORMATION
@@ -126,11 +117,9 @@ print("        Sessions' time spans computed in %.1f seconds." %(timelib.time()-
 start_time = timelib.time()
 print("        Computing the richness of each session ...", end='\r')
 session_category_richness = log[['requested_category', 'global_session_id']].groupby('global_session_id').aggregate(lambda x: len(set(x)))
-session_thema_richness = log[['requested_melty_thema_name', 'global_session_id']].groupby('global_session_id').aggregate(lambda x: len(set(x)))
-session_my_thema_richness = log[['requested_my_thema', 'global_session_id']].groupby('global_session_id').aggregate(lambda x: len(set(x)))
+session_topic_richness = log[['requested_topic', 'global_session_id']].groupby('global_session_id').aggregate(lambda x: len(set(x)))
 session_data['requested_category_richness'] = session_data.global_session_id.map(pd.Series(data=session_category_richness.requested_category.values, index=session_category_richness.index))
-session_data['requested_thema_richness'] = session_data.global_session_id.map(pd.Series(data=session_thema_richness.requested_melty_thema_name.values, index=session_thema_richness.index))
-session_data['requested_my_thema_richness'] = session_data.global_session_id.map(pd.Series(data=session_my_thema_richness.requested_my_thema.values, index=session_my_thema_richness.index))
+session_data['requested_topic_richness'] = session_data.global_session_id.map(pd.Series(data=session_topic_richness.requested_topic.values, index=session_topic_richness.index))
 print("        Sessions' richnesses computed in %.1f seconds." %(timelib.time()-start_time))
 
 # Determining the origin of sessions
@@ -158,20 +147,20 @@ bifurcation = log[['referrer_url', 'requested_url', 'global_session_id']].groupb
 session_data['bifurcation'] = session_data.global_session_id.map(bifurcation.referrer_url)
 print("        Shape parameters computed in %.1f seconds." %(timelib.time()-start_time))
 
-# Computing thema proportion
+# Computing topic proportion
 start_time = timelib.time()
-print("        Computing requested my_thema proportion ...", end="\r")
-thema_list = [t for t in urldata[["my_thema"]].drop_duplicates("my_thema")["my_thema"].tolist() if "(ext)" not in t]
-for thema in thema_list:
-    proportion_thema = log[["global_session_id", "requested_my_thema"]].groupby("global_session_id").apply(lambda x: x[x.requested_my_thema == thema].shape[0])
-    session_data[thema+"_proportion"] = session_data.global_session_id.map(pd.Series(data=proportion_thema.values, index=proportion_thema.index))
-    session_data[thema+"_proportion"] = session_data[thema+"_proportion"] / session_data["requests"]
-print("        Requested my_thema proportion computed in %.1f seconds." %(timelib.time()-start_time))
+print("        Computing requested topic proportion ...", end="\r")
+topic_list = [t for t in urldata[["topic"]].drop_duplicates("topic")["topic"].tolist() if "(ext)" not in t]
+for topic in topic_list:
+    proportion_topic = log[["global_session_id", "requested_topic"]].groupby("global_session_id").apply(lambda x: x[x.requested_topic == topic].shape[0])
+    session_data[topic+"_proportion"] = session_data.global_session_id.map(pd.Series(data=proportion_topic.values, index=proportion_topic.index))
+    session_data[topic+"_proportion"] = session_data[topic +"_proportion"] / session_data["requests"]
+print("        Requested topic proportion computed in %.1f seconds." %(timelib.time()-start_time))
 
 # Computing Shannon entropy
 start_time= timelib.time()
 print("        Computing shannon entropy ...", end='\r')
-entropy = log[["global_session_id", "requested_my_thema"]].groupby("global_session_id").apply(lambda x: x.groupby("requested_my_thema").aggregate(lambda y: y.count()/x.shape[0]))
+entropy = log[["global_session_id", "requested_topic"]].groupby("global_session_id").apply(lambda x: x.groupby("requested_topic").aggregate(lambda y: y.count()/x.shape[0]))
 shannon = entropy.global_session_id.groupby("global_session_id").apply(lambda x: ShannonEntropy(x.values))
 session_data["entropy"] = session_data.global_session_id.map(pd.Series(data=shannon.values, index=shannon.index))
 print("        Shannon entropy computed in %.1f seconds." %(timelib.time()-start_time))
@@ -218,7 +207,8 @@ result = session_data.sort_values(by="global_session_id", ascending=True)
 result["timespan"] = result.timespan.apply(lambda x: x.seconds)
 
 # normalization + filtering
-dimensions = ["requests","timespan","requested_category_richness","requested_my_thema_richness","star_chain_like","bifurcation","entropy","standard_deviation","popularity_mean","inter_req_mean_seconds","TV_proportion","Celebrities_proportion","Series_proportion","Movies_proportion","Music_proportion","Unclassifiable_proportion","Comic_proportion","VideoGames_proportion","Other_proportion","Sport_proportion","News_proportion","read_pages", "variance"]
+dimensions = ["requests","timespan","requested_category_richness","requested_topic_richness","star_chain_like","bifurcation","entropy","standard_deviation","popularity_mean","inter_req_mean_seconds","read_pages", "variance"]
+dimensions = dimensions + urldata.topic.drop_duplicates().apply(lambda x: x+"_proportion").tolist()
 lognorm = ["requests", "timespan", "inter_req_mean_seconds", "standard_deviation", "popularity_mean", "variance"]
 start_time = timelib.time()
 print("\n   * Normalizing dimensions ...", end="\r")
