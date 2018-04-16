@@ -5,7 +5,7 @@ import numpy as np
 
 from graph_tool.all import *
 
-def session_draw(cluster_id, sessions_id, log):
+def session_draw(cluster_id, n_id, sessions_id, log):
     for id in sessions_id:
         session = log[log.global_session_id==id]
         urls = session.requested_url
@@ -16,5 +16,5 @@ def session_draw(cluster_id, sessions_id, log):
         for u in urls:
             v[u] = g.add_vertex()
         session.apply(lambda x: g.add_edge(v[x.referrer_url], v[x.requested_url]), axis=1)
-        graph_draw(g, output="Graphs/"+str(cluster_id)+"_session"+str(id)+".png")
+        graph_draw(g, output="Graphs/"+str(n_id)+"/"+str(cluster_id)+"_session"+str(id)+".png")
     return

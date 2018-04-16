@@ -16,7 +16,7 @@ import random
 cmap = plt.cm.gist_ncar
 
 def plot_palette(labels,filename):
-    cmap = plt.cm.Set3
+    cmap = plt.cm.tab20
     colormap = cmap(np.linspace(0., 1., len(labels)))
     image=np.zeros((len(labels),1,4))
     image[:,0,:]=colormap

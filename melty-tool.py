@@ -36,11 +36,10 @@ import sys, os
 # ================= #
 
 logo = "\n                _ _               _              _ \n _ __ ___   ___| | |_ _   _      | |_ ___   ___ | |\n| '_ ` _ \ / _ \ | __| | | |_____| __/ _ \ / _ \| |\n| | | | | |  __/ | |_| |_| |_____| || (_) | (_) | |\n|_| |_| |_|\___|_|\__|\__, |      \__\___/ \___/|_|\n                      |___/                        \n\n"
-log_filename = "Files/MyLog.csv"
-session_filename = "Files/Sessions.csv"
-dimensions = ["requests","timespan","requested_category_richness","requested_my_thema_richness","star_chain_like","bifurcation","entropy","standard_deviation","popularity_mean","inter_req_mean_seconds","TV_proportion","Celebrities_proportion","Series_proportion","Movies_proportion","Music_proportion","Unclassifiable_proportion","Comic_proportion","VideoGames_proportion","Other_proportion","Sport_proportion","News_proportion","read_pages", "variance"]
-lognorm = ["requests", "timespan", "inter_req_mean_seconds", "standard_deviation", "popularity_mean", "variance"]
-
+log_filename = "Outputs/MyLog.csv"
+session_filename = "Outputs/Sessions.csv"
+dimensions = ['requests', 'timespan', 'requested_category_richness', 'requested_topic_richness', 'star_chain_like', 'bifurcation', 'requested_topic_proportion', 'entropy', 'variance', 'popularity_mean', 'inter_req_mean_seconds', 'TV_proportion', 'Series_proportion', 'News_proportion', 'Celebrities_proportion', 'VideoGames_proportion', 'Music_proportion', 'Movies_proportion', 'Sport_proportion', 'Comic_proportion', 'Look_proportion', 'Other_proportion', 'Humor_proportion', 'Student_proportion', 'Events_proportion', 'Wellbeing_proportion', 'None_proportion', 'Food_proportion', 'Tech_proportion', 'standard_deviation', 'read_pages']
+normalized_dimensions = map(lambda x: "normalized_"+x, dimensions) # normalized dimensions labels list
 
 # ====================== #
 #     MENU FUNCTIONS     #
@@ -141,10 +140,11 @@ def print_session(session_id):
     if session_id == "q":
         menu_actions["main_menu"]()
     elif session_id.isdigit() and int(session_id) > 0:
-        # DO SOMETHING
         session = log[log.global_session_id == int(session_id)]
         if session.shape[0] == 0:
             print("Session {} not found.".format(session_id))
+        else:
+            print(session[["timestamp", "referrer_url", "requested_url"]])
         input("Press ENTER to continue ...")
     else:
         print("Invalid input, please try again.\n")
@@ -166,31 +166,20 @@ def clustering(n_clusters, dim):
 os.system("clear")
 print(logo)
 # loading files
-# print("\n   * Loading files ...")
-# start_time = timelib.time()
-# print("\n        Loading "+log_filename+" ...", end="\r")
-# log = pd.read_csv(log_filename, sep=',', na_filter=False, low_memory=False)
-# print("        "+log_filename+" loaded ({} rows) in {:.1f} seconds.".format(log.shape[0], timelib.time()-start_time))
-# start_time = timelib.time()
-# print("        Loading "+session_filename+" ...", end="\r")
-# sessions = pd.read_csv(session_filename, sep=',')
-# print("        "+session_filename+" loaded ({} rows) in {:.1f} seconds.".format(sessions.shape[0], timelib.time()-start_time))
-# sessions.fillna(0, inplace=True)
+print("\n   * Loading files ...")
+start_time = timelib.time()
+print("\n        Loading "+log_filename+" ...", end="\r")
+log = pd.read_csv(log_filename, sep=',', na_filter=False, low_memory=False)
+print("        "+log_filename+" loaded ({} rows) in {:.1f} seconds.".format(log.shape[0], timelib.time()-start_time))
+start_time = timelib.time()
+print("        Loading "+session_filename+" ...", end="\r")
+sessions = pd.read_csv(session_filename, sep=',')
+print("        "+session_filename+" loaded ({} rows) in {:.1f} seconds.".format(sessions.shape[0], timelib.time()-start_time))
+sessions.fillna(0, inplace=True)
 
 pathlib.Path("Latex").mkdir(parents=True, exist_ok=True)
 pathlib.Path("Graphs").mkdir(parents=True, exist_ok=True)
 pathlib.Path("Clusters").mkdir(parents=True, exist_ok=True)
 pathlib.Path("Sessions").mkdir(parents=True, exist_ok=True)
-
-# normalization
-# normalized_dimensions = []
-# print("\n   * Normalizing dimensions ...", end="\r")
-# for p in dimensions:
-#     normalized_dimensions.append("normalized_"+p)
-#     if p in lognorm:
-#         sessions["normalized_"+p] = log_normalize(sessions[p])
-#     else:
-#         sessions["normalized_"+p] = normalize(sessions[p])
-# print("   * Dimensions normalized in %.1f seconds." %(timelib.time()-start_time))
 
 main_menu()
