@@ -72,27 +72,29 @@ print("   > NB_CLUSTERS: {}".format(NB_CLUSTERS))
 # CLUSTERING
 start_time = timelib.time()
 print("\n   * Clustering ...")
-kmeans = KMeans(n_clusters=NB_CLUSTERS, random_state=0).fit(sessions[normalized_dimensions].values)
-cluster_labels=kmeans.labels_
-sessions["cluster_id"] = cluster_labels
 
-num_cluster = sessions.cluster_id.unique()
-num_cluster.sort()
+for n in NB_CLUSTERS:
+    kmeans = KMeans(n_clusters=n, random_state=0).fit(sessions[normalized_dimensions].values)
+    cluster_labels=kmeans.labels_
+    sessions["cluster_id"] = cluster_labels
+    num_cluster = sessions.cluster_id.unique()
+    num_cluster.sort()
 
-# recap center
-latex_output.write("% RECAP\n\\begin{tabular}{|c|c|")
-for dim in normalized_dimensions:
-    latex_output.write("c|")
-latex_output.write("}\n    \\hline\n    cluster & size")
-for dim in normalized_dimensions:
-    latex_output.write(" & "+str(dim).replace("_", "\_"))
-latex_output.write(" \\\\\n    \\hline\n")
-for cluster_id in num_cluster:
-    latex_output.write("    "+str(cluster_id)+" & "+str(sessions[sessions.cluster_id==cluster_id].shape[1]))
-    for i in range(0, kmeans.cluster_centers_.shape[0]):
-        latex_output.write(" & {:.3f}".format(kmeans.cluster_centers_[cluster_id][i]))
+
+    # recap center
+    latex_output.write("% RECAP\n\\begin{tabular}{|c|c|")
+    for dim in normalized_dimensions:
+        latex_output.write("c|")
+    latex_output.write("}\n    \\hline\n    cluster & size")
+    for dim in normalized_dimensions:
+        latex_output.write(" & "+str(dim).replace("_", "\_"))
     latex_output.write(" \\\\\n    \\hline\n")
-latex_output.write("\\end{tabular}\n\n")
+    for cluster_id in num_cluster:
+        latex_output.write("    "+str(cluster_id)+" & "+str(sessions[sessions.cluster_id==cluster_id].shape[1]))
+        for i in range(0, kmeans.cluster_centers_.shape[0]):
+            latex_output.write(" & {:.3f}".format(kmeans.cluster_centers_[cluster_id][i]))
+        latex_output.write(" \\\\\n    \\hline\n")
+    latex_output.write("\\end{tabular}\n\n")
 
 # display
 for cluster_id in num_cluster:
