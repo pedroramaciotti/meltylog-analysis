@@ -71,7 +71,7 @@ print("   > NB_CLUSTERS: {}".format(NB_CLUSTERS))
 
 latex_output.write("\\begin{frame}{Clustering}\n    Clustering on "+str(len(dimensions))+" dimensions:\n    \\begin{enumerate}\n")
 for d in dimensions:
-    latex_output.write("        \\item "+d+"\n")
+    latex_output.write("        \\item "+d.replace("_", "\_")+"\n")
 latex_output.write("    \\end{enumerate}\n\\end{frame}\n\n")
 
 ############
@@ -91,17 +91,13 @@ for n in NB_CLUSTERS:
 
     latex_output.write("\\begin{frame}{Clustering: "+str(n)+" clusters}\n    \\begin{center}\n        \\resizebox{\\textwidth}{!}{\n            \\begin{tabular}{ccccc}\n                \\includegraphics[width=\\textwidth, keepaspectratio]{clusters/"+str(n)+"/cluster0}")
     for i in range(1, 10):
-        if i == 4: # second row
-            if n > 4: # clusters number checking
-                latex_output.write(" & \\includegraphics[width=\\textwidth, keepaspectratio]{clusters/"+str(n)+"/cluster4} \\\\\n")
-            else:
-                latex_output.write(" & \\\\\n")
+        if i >= n: # no clusters left
+            break
+        if i == 5: # second row
+            latex_output.write(" \\\\\n                \\includegraphics[width=\\textwidth, keepaspectratio]{clusters/"+str(n)+"/cluster5}")
             continue
-        if i >= n: # checks if there are clusters left to print
-            latex_output.write(" & ")
-        else:
-            latex_output.write(" & \\includegraphics[width=\\textwidth, keepaspectratio]{clusters/"+str(n)+"/cluster"+str(i)+"}")
-    latex_output.write("\n            \\end{tabular}\n        }\n\n        \\begin{columns}\n            \\begin{column}{.65\\textwidth}\n                \\scalebox{.5}{\n")
+        latex_output.write(" & \\includegraphics[width=\\textwidth, keepaspectratio]{clusters/"+str(n)+"/cluster"+str(i)+"}")
+    latex_output.write("\n            \\end{tabular}\n        }\n\n        \\begin{columns}\n            \\begin{column}{.65\\textwidth}\n                \\begin{center}\n                \\scalebox{.25}{\n")
 
     # recap center
     latex_output.write("                    \\begin{tabular}{|c|c|")
@@ -112,11 +108,11 @@ for n in NB_CLUSTERS:
         latex_output.write(" & "+str(dim).replace("_", "\_"))
     latex_output.write(" \\\\\n                        \\hline\n")
     for cluster_id in num_cluster:
-        latex_output.write("                        "+str(cluster_id)+" & "+str(sessions[sessions.cluster_id==cluster_id].shape[1]))
+        latex_output.write("                        "+str(cluster_id)+" & "+str(sessions[sessions.cluster_id==cluster_id].shape[0]))
         for j in range(0, kmeans.cluster_centers_.shape[1]):
             latex_output.write(" & {:.3f}".format(kmeans.cluster_centers_[cluster_id][j]))
         latex_output.write(" \\\\\n                        \\hline\n")
-    latex_output.write("                    \\end{tabular}\n                }\n            \\end{column}\n            \\begin{column}{.35\\textwidth}\n                \\includegraphics[width=\textwidth, keepaspectratio]{clusters/palette_topic}\n            \\end{column}\n        \\end{columns}\n    \\end{tabuler}\n\\end{frame}\n\n")
+    latex_output.write("                    \\end{tabular}\n                }\n                \\end{center}\n            \\end{column}\n            \\begin{column}{.35\\textwidth}\n                \\includegraphics[width=\\textwidth, keepaspectratio]{clusters/palette_topic}\n            \\end{column}\n        \\end{columns}\n    \\end{center}\n\\end{frame}\n\n")
 
     # display
     for cluster_id in num_cluster:
