@@ -1,0 +1,51 @@
+\begin{frame}{Clustering}
+    Clustering on 5 dimensions:
+    \begin{enumerate}
+        \item requests
+        \item timespan
+        \item standard\_deviation
+        \item inter\_req\_mean\_seconds
+        \item read\_pages
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{Clustering: 6 clusters}
+    \begin{center}
+        \resizebox{\textwidth}{!}{
+            \begin{tabular}{ccccc}
+                \includegraphics[width=\textwidth, keepaspectratio]{clusters/6/cluster0} & \includegraphics[width=\textwidth, keepaspectratio]{clusters/6/cluster1} & \includegraphics[width=\textwidth, keepaspectratio]{clusters/6/cluster2} & \includegraphics[width=\textwidth, keepaspectratio]{clusters/6/cluster3} & \includegraphics[width=\textwidth, keepaspectratio]{clusters/6/cluster4} \\
+                \includegraphics[width=\textwidth, keepaspectratio]{clusters/6/cluster5}
+            \end{tabular}
+        }
+
+        \begin{columns}
+            \begin{column}{.65\textwidth}
+                \begin{center}
+                \scalebox{.25}{
+                    \begin{tabular}{|c|c|c|c|c|c|c|}
+                        \hline
+                        cluster & size & requests & timespan & standard\_deviation & inter\_req\_mean\_seconds & read\_pages \\
+                        \hline
+                        0 & 88555 & 0.140 & 0.007 \\
+                        \hline
+                        1 & 54958 & -0.190 & -0.019 \\
+                        \hline
+                        2 & 30921 & 0.335 & 0.002 \\
+                        \hline
+                        3 & 87570 & -0.010 & 0.005 \\
+                        \hline
+                        4 & 40059 & -0.405 & 0.003 \\
+                        \hline
+                        5 & 6499 & 0.754 & -0.030 \\
+                        \hline
+                    \end{tabular}
+                }
+                \end{center}
+            \end{column}
+            \begin{column}{.35\textwidth}
+                \includegraphics[width=\textwidth, keepaspectratio]{clusters/palette_topic}
+            \end{column}
+        \end{columns}
+    \end{center}
+\end{frame}
+

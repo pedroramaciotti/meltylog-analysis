@@ -1,0 +1,40 @@
+\documentclass{beamer}
+
+\mode<presentation>
+{
+  \usetheme{Madrid}       % or try default, Darmstadt, Warsaw, ...
+  \usecolortheme{default} % or try albatross, beaver, crane, ...
+  \usefonttheme{serif}    % or try default, structurebold, ...
+  \setbeamertemplate{navigation symbols}{}
+  \setbeamertemplate{caption}[numbered]
+} 
+
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage{verbatim}
+\usepackage{pgfpages}
+%\pgfpagesuselayout{resize to}[%
+%  physical paper width=8in, physical paper height=6in]
+
+% Here's where the presentation starts, with the info for the title slide
+
+%\title[Chantier Traces: Melty]{Chantier Traces:Melty Data \\ {\small Projet ALGODIV: ANR-15-CE38-001}}
+\title[Melty Clustering]{Session Clusterisation : Melty Data \\ {\small Projet ALGODIV: ANR-15-CE38-001}}
+%\author[Pedro Ramaciotti-Morales]{Pedro Ramaciotti Morales\\{\tiny pedro.ramaciotti-morales@lip6.fr}}
+\institute[LIP6]{LIP6-UMPC, Sorbonne}
+\date{\today}
+\titlegraphic{\includegraphics[width=2.5cm]{Logos/logo_algodiv.png}\hspace*{4.00cm}~%
+   \includegraphics[width=1.5cm]{Logos/LIP6_trans.png}
+}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\input{latex_clusters}
+
+
+
+\end{document}
